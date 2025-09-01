@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { ClerkProvider } from '@clerk/nextjs';
 import AutoLocationManager from '@/components/auth/AutoLocationManager';
@@ -14,12 +14,6 @@ export const metadata: Metadata = {
   description: "Discover the best restaurants and dishes near you with AI-powered search and personalized recommendations",
   keywords: ["food discovery", "restaurant finder", "AI search", "dining", "food reviews"],
   authors: [{ name: "Aharamm AI Team" }],
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false, // Prevents zoom on iOS
-  },
   openGraph: {
     title: "Aharamm AI - AI Powered Food Discovery",
     description: "Discover the best restaurants and dishes near you with AI-powered search and personalized recommendations",
@@ -34,6 +28,14 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false, // Prevents iOS from auto-detecting phone numbers
   },
+};
+
+// Separate viewport export (Next.js 15 requirement)
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false, // Prevents zoom on iOS
 };
 
 export default function RootLayout({
