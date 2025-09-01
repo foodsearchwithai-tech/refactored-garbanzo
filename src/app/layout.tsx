@@ -14,10 +14,25 @@ export const metadata: Metadata = {
   description: "Discover the best restaurants and dishes near you with AI-powered search and personalized recommendations",
   keywords: ["food discovery", "restaurant finder", "AI search", "dining", "food reviews"],
   authors: [{ name: "Aharamm AI Team" }],
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false, // Prevents zoom on iOS
+  },
   openGraph: {
     title: "Aharamm AI - AI Powered Food Discovery",
     description: "Discover the best restaurants and dishes near you with AI-powered search and personalized recommendations",
     type: "website",
+  },
+  // iOS specific meta tags
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Aharamm AI',
+  },
+  formatDetection: {
+    telephone: false, // Prevents iOS from auto-detecting phone numbers
   },
 };
 
@@ -35,8 +50,21 @@ export default function RootLayout({
           card: "shadow-lg",
         },
       }}
+      // iOS/mobile compatibility
+      signInFallbackRedirectUrl="/"
+      signUpFallbackRedirectUrl="/onboarding"
+      afterSignInUrl="/"
+      afterSignUpUrl="/onboarding"
     >
       <html lang="en">
+        <head>
+          {/* iOS specific meta tags for better mobile experience */}
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+          <meta name="apple-mobile-web-app-title" content="Aharamm AI" />
+          <meta name="mobile-web-app-capable" content="yes" />
+          <meta name="theme-color" content="#f97316" />
+        </head>
         <body className={`${inter.variable} font-sans antialiased bg-white text-gray-900`}>
           <AutoLocationManager />
           {children}

@@ -1,73 +1,125 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
-// Routes that require authentication - REMOVED /onboarding from here
+// Routes that require authentication
 const isProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',
   '/profile(.*)',
   '/restaurant-dashboard(.*)',
-  '/api/onboarding(.*)',
   '/api/upload(.*)',
   '/api/menu(.*)',
   '/api/restaurant/dashboard(.*)',
   '/api/reviews(.*)',
+  '/api/favorites(.*)',
+  '/api/user/(.*)',
 ]);
 
-// Public routes that don't need auth - ADDED /onboarding here
+// Public routes that don't need auth
 const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
-  '/onboarding(.*)', // Make onboarding public
+  '/onboarding(.*)',
+  '/restaurants(.*)',
+  '/restaurant/(.*)',
+  '/search(.*)',
   '/api/restaurants(.*)',
   '/api/search(.*)',
   '/api/geocoding(.*)',
-  '/api/menu-items/[itemId]/reviews(.*)',
+  '/api/menu-items/(.*)',
+]);
+
+// API routes that should work for both authenticated and unauthenticated users
+const isOptionalAuthRoute = createRouteMatcher([
+  '/api/notifications(.*)',
+  '/api/analytics(.*)',
+  '/api/onboarding(.*)',
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
   try {
-    const { userId } = await auth();
-    
-    // Handle public routes first - no authentication required
-    if (isPublicRoute(req)) {
-      // Still add user ID for tracking if available
-      if (userId && req.nextUrl.pathname.startsWith('/api/')) {
-        const requestHeaders = new Headers(req.headers);
-        requestHeaders.set('x-user-id', userId);
-        return NextResponse.next({
-          request: { headers: requestHeaders },
-        });
-      }
-      return NextResponse.next();
-    }
-    
-    // Protect all other routes
-    if (isProtectedRoute(req)) {
-      await auth.protect(); // Clerk will use default redirect URLs from env
-    }
-    
-    // Add user ID to API routes when authenticated
-    if (userId && req.nextUrl.pathname.startsWith('/api/')) {
-      const requestHeaders = new Headers(req.headers);
-      requestHeaders.set('x-user-id', userId);
-      return NextResponse.next({
-        request: { headers: requestHeaders },
+    // Handle CORS for mobile/iOS compatibility
+    if (req.method === 'OPTIONS') {
+      return new NextResponse(null, {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, X-User-ID',
+          'Access-Control-Max-Age': '86400',
+        },
       });
+    }
+
+    // Get user ID (but don't throw if not authenticated)
+    let userId: string | null = null;
+    try {
+      const authResult = await auth();
+      userId = authResult.userId;
+    } catch {
+      // User not authenticated - this is OK for some routes
+      console.log('User not authenticated, continuing...');
+    }
+    
+    // Handle public routes - no authentication required
+    if (isPublicRoute(req)) {
+      const response = NextResponse.next();
+      // Add CORS headers for mobile compatibility
+      response.headers.set('Access-Control-Allow-Origin', '*');
+      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-User-ID');
+      
+      // Still add user ID if available
+      if (userId && req.nextUrl.pathname.startsWith('/api/')) {
+        response.headers.set('X-User-ID', userId);
+      }
+      return response;
+    }
+    
+    // Handle optional auth routes (work for both authenticated and unauthenticated)
+    if (isOptionalAuthRoute(req)) {
+      const response = NextResponse.next();
+      // Add CORS headers
+      response.headers.set('Access-Control-Allow-Origin', '*');
+      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-User-ID');
+      
+      // Add user ID header if authenticated
+      if (userId) {
+        response.headers.set('X-User-ID', userId);
+      }
+      return response;
+    }
+    
+    // Protect routes that require authentication
+    if (isProtectedRoute(req)) {
+      if (!userId) {
+        // Redirect to sign-in for protected routes
+        const signInUrl = new URL('/sign-in', req.url);
+        signInUrl.searchParams.set('redirect_url', req.url);
+        return NextResponse.redirect(signInUrl);
+      }
+      
+      // Add user ID to protected API routes
+      if (req.nextUrl.pathname.startsWith('/api/')) {
+        const response = NextResponse.next();
+        response.headers.set('X-User-ID', userId);
+        return response;
+      }
     }
     
     return NextResponse.next();
   } catch (error) {
     console.error('Middleware error:', error);
-    // Redirect to sign-in on any auth error
-    return NextResponse.redirect(new URL('/sign-in', req.url));
+    // On error, allow the request to continue but without auth
+    return NextResponse.next();
   }
 });
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Skip Next.js internals and static files
+    '/((?!_next|static|favicon.ico|images|.*\\.(?:png|jpg|jpeg|gif|svg|ico|css|js|woff|woff2|ttf)).*)',
     // Always run for API routes
     '/(api|trpc)(.*)',
   ],
