@@ -38,23 +38,41 @@ async function ensureUserExists(userId: string) {
       return { success: false, message: 'User not found in Clerk' };
     }
 
-    // Create minimal user record
-    const newUser = await db
-      .insert(users)
-      .values({
-        id: userId,
-        email: clerkUser.emailAddresses[0]?.emailAddress || '',
-        firstName: clerkUser.firstName || '',
-        lastName: clerkUser.lastName || '',
-        profileImage: clerkUser.imageUrl || '',
-        userType: 'customer', // Default to customer, will be updated during onboarding
-        phone: '',
-        isOnboardingCompleted: false,
-      })
-      .returning();
+    try {
+      // Try to create user record
+      const newUser = await db
+        .insert(users)
+        .values({
+          id: userId,
+          email: clerkUser.emailAddresses[0]?.emailAddress || '',
+          firstName: clerkUser.firstName || '',
+          lastName: clerkUser.lastName || '',
+          profileImage: clerkUser.imageUrl || '',
+          userType: 'customer', // Default to customer, will be updated during onboarding
+          phone: '',
+          isOnboardingCompleted: false,
+        })
+        .returning();
 
-    console.log(`✅ Created user record for ${userId} from Clerk data`);
-    return { success: true, data: newUser[0] };
+      console.log(`✅ Created user record for ${userId} from Clerk data`);
+      return { success: true, data: newUser[0] };
+      
+    } catch (insertError: unknown) {
+      // If user already exists (race condition), just fetch and return
+      if (insertError && typeof insertError === 'object' && 'code' in insertError && insertError.code === '23505') { // Unique constraint violation
+        console.log(`User ${userId} already exists, fetching existing record`);
+        const existingUser = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        
+        if (existingUser.length > 0) {
+          return { success: true, data: existingUser[0] };
+        }
+      }
+      throw insertError; // Re-throw if it's a different error
+    }
 
   } catch (error) {
     console.error('Error ensuring user exists:', error);

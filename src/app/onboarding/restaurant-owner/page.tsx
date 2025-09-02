@@ -3957,9 +3957,9 @@ After completing setup, you&apos;ll be taken to your restaurant dashboard where 
               className="aharamm-gradient w-full sm:w-auto order-1 sm:order-2 min-h-[44px] text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
               disabled={
                 (currentStep === 1 && (!formData.restaurantName || (formData.categories.length === 0 && !otherCategorySelected) || !formData.description)) ||
-                (currentStep === 2 && formData.cuisineTypes.length === 0) ||
-                (currentStep === 3 && (!formData.address || !formData.city || !formData.state || !formData.zipCode || !formData.latitude || !formData.longitude)) ||
-                (currentStep === 4 && !formData.phone) ||
+                (currentStep === 3 && formData.cuisineTypes.length === 0) ||
+                (currentStep === 4 && (!formData.address || !formData.city || !formData.state || !formData.zipCode || !formData.latitude || !formData.longitude)) ||
+                (currentStep === 5 && !formData.phone) ||
                 false // All remaining steps are optional or have no validation requirements
               }
             >
