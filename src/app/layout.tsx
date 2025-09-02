@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { ClerkProvider } from '@clerk/nextjs';
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 import AutoLocationManager from '@/components/auth/AutoLocationManager';
 import "./globals.css";
 
@@ -70,6 +72,8 @@ export default function RootLayout({
         <body className={`${inter.variable} font-sans antialiased bg-white text-gray-900`}>
           <AutoLocationManager />
           {children}
+          <SpeedInsights />
+          <Analytics />
         </body>
       </html>
     </ClerkProvider>
