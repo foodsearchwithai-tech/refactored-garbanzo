@@ -23,6 +23,7 @@ const isPublicRoute = createRouteMatcher([
   '/restaurants(.*)',
   '/restaurant/(.*)',
   '/search(.*)',
+  '/search/(.*)',
   '/api/restaurants(.*)',
   '/api/search(.*)',
   '/api/geocoding(.*)',
