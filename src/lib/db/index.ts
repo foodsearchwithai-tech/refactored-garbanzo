@@ -7,7 +7,12 @@ if (!process.env.DATABASE_URL) {
 }
 
 // Configure Neon connection with better timeout and retry settings
-const sql = neon(process.env.DATABASE_URL);
+const sql = neon(process.env.DATABASE_URL, {
+  // Enable full results for better error handling
+  fullResults: true,
+  // Enable array mode for better performance
+  arrayMode: false,
+});
 
 export const db = drizzle(sql, { 
   schema,

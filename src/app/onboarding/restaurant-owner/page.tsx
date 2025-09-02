@@ -159,6 +159,8 @@ export default function RestaurantOwnerOnboardingPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingCoordinates, setIsLoadingCoordinates] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [loadingIcons, setLoadingIcons] = useState<Record<string, boolean>>({});
   const [showCustomCategory, setShowCustomCategory] = useState(false);
   const [customCategory, setCustomCategory] = useState('');
@@ -1489,11 +1491,19 @@ const handleHoursChange = (day: keyof typeof DEFAULT_HOURS, field: 'isOpen' | 'o
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(basicData),
+        // Add timeout configuration
+        signal: AbortSignal.timeout(60000), // 60 second timeout
       });
 
       if (response.ok) {
         const result = await response.json();
         const restaurantId = result.restaurantId;
+        const restaurantName = result.restaurantName;
+        const message = result.message;
+
+        // Set success state
+        setIsSuccess(true);
+        setSuccessMessage(message || `🎉 Congratulations! Your restaurant "${restaurantName}" has been successfully added to Aharam AI!`);
 
         // Upload kitchen photos
         const kitchenPhotoUrls: string[] = [];
@@ -1572,15 +1582,19 @@ const handleHoursChange = (day: keyof typeof DEFAULT_HOURS, field: 'isOpen' | 'o
         // User data sync is handled by Clerk automatically
         console.log('Restaurant onboarding completed successfully');
         
-        // Redirect to dashboard with welcome message
-        router.push('/restaurant-dashboard?welcome=true');
+        // Show success message for 3 seconds before redirect
+        setTimeout(() => {
+          router.push('/restaurant-dashboard?welcome=true');
+        }, 3000);
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to save restaurant data');
       }
     } catch (error) {
       console.error('Restaurant onboarding error:', error);
-      alert('Failed to complete setup. Please try again.');
+      setIsSuccess(false);
+      setSuccessMessage('');
+      alert(`Failed to complete setup: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
       setIsLoading(false);
     }
   };
@@ -3905,6 +3919,33 @@ After completing setup, you&apos;ll be taken to your restaurant dashboard where 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
+      {/* Success Modal */}
+      {isSuccess && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8 text-center transform animate-in slide-in-from-bottom-4 duration-300">
+            <div className="mb-6">
+              <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                Success!
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                {successMessage}
+              </p>
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              Redirecting to your dashboard...
+            </div>
+            <div className="mt-4">
+              <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-4xl mx-auto onboarding-container">
         {/* Header */}
         <div className="text-center mb-8 sm:mb-12">

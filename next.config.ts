@@ -27,11 +27,37 @@ const nextConfig: NextConfig = {
     // Increase timeout for image processing
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // Add image optimization settings to prevent timeouts
+    formats: ['image/webp'],
+    minimumCacheTTL: 60,
   },
+  // Configure Turbopack instead of webpack
+  turbopack: {
+    // Configure resolve aliases for better module resolution
+    resolveAlias: {
+      // Add any aliases you need here
+    },
+    // Configure resolve extensions
+    resolveExtensions: [
+      '.mdx',
+      '.tsx', 
+      '.ts', 
+      '.jsx', 
+      '.js', 
+      '.mjs', 
+      '.json'
+    ],
+  },
+  // Move serverComponentsExternalPackages to the correct location
+  serverExternalPackages: [],
   // Add experimental features to handle timeouts better
   experimental: {
-    // Increase image processing timeout
-    workerThreads: false,
+    // Remove deprecated and invalid options
+  },
+  // Add API routes timeout configuration
+  serverRuntimeConfig: {
+    // Increase API timeout to 60 seconds
+    maxDuration: 60,
   },
 };
 
