@@ -2660,7 +2660,7 @@ const handleHoursChange = (day: keyof typeof DEFAULT_HOURS, field: 'isOpen' | 'o
           </div>
         );
 
-      case 4:
+      case 5:
         return (
           <div className="mx-auto max-w-4xl">
             <Card className="bg-gradient-to-br from-white via-orange-50/30 to-white dark:from-gray-900 dark:via-gray-800/50 dark:to-gray-900 border-2 border-black/10 dark:border-white/10 shadow-lg">
@@ -3167,7 +3167,7 @@ const handleHoursChange = (day: keyof typeof DEFAULT_HOURS, field: 'isOpen' | 'o
         </div>
         );
 
-      case 5:
+      case 6:
         return (
           <div className="mx-auto max-w-4xl">
             <Card className="bg-gradient-to-br from-white via-orange-50/30 to-white dark:from-gray-900 dark:via-gray-800/50 dark:to-gray-900 border-2 border-black/10 dark:border-white/10 shadow-lg overflow-hidden">
@@ -3191,14 +3191,32 @@ const handleHoursChange = (day: keyof typeof DEFAULT_HOURS, field: 'isOpen' | 'o
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100">Quick Overview</h3>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
-                    {Object.entries(formData.operatingHours).map(([day, hours]) => (
-                      <div key={day} className="flex items-center justify-between bg-white/70 dark:bg-gray-800/50 rounded-lg px-3 py-2 border border-orange-200/30 dark:border-orange-800/30">
-                        <span className="capitalize font-medium text-gray-700 dark:text-gray-300">{day}</span>
-                        <span className={`text-xs px-2 py-1 rounded-full ${hours.isOpen ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
-                          {hours.isOpen ? `${formatTimeDisplay(hours.openTime)} - ${formatTimeDisplay(hours.closeTime)}` : 'Closed'}
-                        </span>
-                      </div>
-                    ))}
+                    {Object.entries(formData.operatingHours).map(([day, hours]) => {
+                      // Create display text for all time slots
+                      let timeDisplay = 'Closed';
+                      if (hours.isOpen) {
+                        // Main time slot
+                        const mainSlot = `${formatTimeDisplay(hours.openTime)} - ${formatTimeDisplay(hours.closeTime)}`;
+                        
+                        // Additional slots
+                        const additionalSlots = hours.additionalSlots?.map(slot => 
+                          `${formatTimeDisplay(slot.openTime)} - ${formatTimeDisplay(slot.closeTime)}`
+                        ) || [];
+                        
+                        // Combine all slots
+                        const allSlots = [mainSlot, ...additionalSlots];
+                        timeDisplay = allSlots.join(', ');
+                      }
+                      
+                      return (
+                        <div key={day} className="flex flex-col bg-white/70 dark:bg-gray-800/50 rounded-lg px-3 py-2 border border-orange-200/30 dark:border-orange-800/30">
+                          <span className="capitalize font-medium text-gray-700 dark:text-gray-300 mb-1">{day}</span>
+                          <span className={`text-xs px-2 py-1 rounded-full self-start ${hours.isOpen ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                            {timeDisplay}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -3526,7 +3544,7 @@ const handleHoursChange = (day: keyof typeof DEFAULT_HOURS, field: 'isOpen' | 'o
           </div>
         );
 
-      case 6:
+      case 7:
         return (
           <div className="mx-auto max-w-4xl">
             <Card className="bg-gradient-to-br from-white via-orange-50/30 to-white dark:from-gray-900 dark:via-gray-800/50 dark:to-gray-900 border-2 border-black/10 dark:border-white/10 shadow-lg">
@@ -3602,7 +3620,7 @@ After completing setup, you&apos;ll be taken to your restaurant dashboard where 
         </div>
         );
 
-      case 7:
+      case 8:
         return (
           <div className="mx-auto max-w-4xl">
             <Card className="bg-gradient-to-br from-white via-orange-50/30 to-white dark:from-gray-900 dark:via-gray-800/50 dark:to-gray-900 border-2 border-black/10 dark:border-white/10 shadow-lg">
@@ -3704,7 +3722,7 @@ After completing setup, you&apos;ll be taken to your restaurant dashboard where 
         </div>
         );
 
-      case 8:
+      case 9:
         return (
           <div className="mx-auto max-w-4xl">
             <Card className="bg-gradient-to-br from-white via-orange-50/30 to-white dark:from-gray-900 dark:via-gray-800/50 dark:to-gray-900 border-2 border-black/10 dark:border-white/10 shadow-lg">
