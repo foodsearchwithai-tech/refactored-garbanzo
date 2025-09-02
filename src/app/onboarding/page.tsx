@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Users, Store, ChefHat, Heart } from 'lucide-react';
+import Image from 'next/image';
 
 export default function OnboardingPage() {
   const { user } = useUser();
@@ -52,24 +53,36 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center space-x-2 mb-6">
-            <div className="h-16 w-16 rounded-full aharamm-gradient flex items-center justify-center">
-              <span className="text-white font-bold text-2xl">A</span>
-            </div>
-            <span className="font-bold text-3xl text-gray-900">Aharamm AI</span>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50">
+      {/* Top-left corner logo */}
+      <div className="absolute top-6 left-6 z-10">
+        <div className="flex items-center space-x-2">
+          <div className="h-8 w-8 rounded-full  shadow-md flex items-center justify-center p-1">
+            <Image 
+              src="/192x192 Logo.png" 
+              alt="Aharamm AI Logo" 
+              width={24} 
+              height={24}
+              className="rounded-full"
+              priority
+            />
           </div>
-          
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Welcome to Aharamm AI! 👋
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-Let&apos;s personalize your food discovery experience. Tell us how you&apos;d like to use our platform.
-          </p>
+          <span className="font-bold text-lg text-gray-900">Aharamm AI</span>
         </div>
+      </div>
+
+      {/* Main content */}
+      <div className="flex items-center justify-center min-h-screen p-4 pt-20">
+        <div className="w-full max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              Welcome to Aharam AI! 👋
+            </h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+Let&apos;s personalize your food discovery experience. Tell us how you&apos;d like to use our platform.
+            </p>
+          </div>
 
         {/* User Type Selection Cards */}
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -193,6 +206,7 @@ I&apos;m a Restaurant Owner
           <p className="text-sm text-gray-500">
 Don&apos;t worry, you can always change this later in your profile settings.
           </p>
+        </div>
         </div>
       </div>
     </div>
