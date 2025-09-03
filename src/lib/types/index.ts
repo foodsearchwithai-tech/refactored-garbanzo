@@ -38,22 +38,35 @@ export interface Restaurant {
   id: string;
   name: string;
   description: string;
-  verified: boolean;
   cuisineTypes: string[];
+  category: string;
   tagline?: string;
-  coverImages: string[];
-  profileImage: string;
-  rating: number;
-  reviewCount: number;
-  location: RestaurantLocation;
-  contact: RestaurantContact;
-  operatingHours: OperatingHours;
-  policies: RestaurantPolicies;
-  certifications: Certification[];
-  externalLinks: ExternalLinks;
-  ownerId: string;
+  profileImage?: string | null;
+  logoImage?: string | null;
+  coverImages?: string[];
+  bannerImages?: string[];
+  galleryImages?: string[];
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  phone: string;
+  email?: string | null;
+  website?: string | null;
+  features?: string[];
+  latitude?: string | null;
+  longitude?: string | null;
+  averageRating?: number;
+  reviewCount?: number;
+  isActive: boolean;
+  isVerified?: boolean;
   createdAt: Date;
-  updatedAt: Date;
+  distance?: number; // calculated field for nearby results
+  // Enhanced API fields
+  calculatedRating?: number; // calculated from actual reviews
+  actualReviewCount?: number; // actual count from reviews table
+  hasMenu?: boolean; // whether restaurant has active menu
+  menuItemCount?: number; // count of active menu items
 }
 
 export interface RestaurantLocation {

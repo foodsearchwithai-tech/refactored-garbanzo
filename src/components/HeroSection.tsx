@@ -114,111 +114,85 @@ export default function HeroSection() {
       <div className="container mx-auto px-4 relative">
         <div className="max-w-4xl mx-auto text-center">
           {/* Main headline */}
-          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
             <span className="bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
               AI powered
             </span>{' '}
             Food Discovery
-          </h1>
-          
-          <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
+            </h1>
+            
+            <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
             Search by typing, speaking, or taking a photo of food. Our AI finds the best restaurants and dishes near you.
-          </p>
+            </p>
 
-          {/* AI Search Interface */}
-          <div className="w-full max-w-2xl mx-auto">
+            {/* AI Search Interface */}
+            <div className="w-full max-w-2xl mx-auto">
             {/* Search Input */}
-            <div className="flex items-center gap-2 p-3 bg-white rounded-2xl shadow-lg border border-gray-100">
+            <div className="flex items-center gap-2 p-3 bg-white rounded-2xl shadow-lg border-0 focus-within:ring-2 focus-within:ring-orange-400 focus-within:border-transparent transition-all">
               <div className="flex-1 flex items-center space-x-3 px-3">
-                <Search className="h-5 w-5 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="Type what you're craving or describe a dish..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleTextSearch()}
-                  className="border-0 p-0 text-base placeholder:text-gray-400 focus-visible:ring-0 bg-transparent"
-                />
+              <Search className="h-5 w-5 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Type what you're craving or describe a dish..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleTextSearch()}
+                className="w-full border-0 focus:ring-0 focus-visible:ring-0 bg-transparent outline-none shadow-none"
+              />
               </div>
 
               {/* Search Method Buttons */}
               <div className="flex items-center gap-2">
-                {/* Hidden file input for image upload */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
+              {/* Hidden file input for image upload */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
 
-                {/* Voice Search */}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleVoiceSearch}
-                  className={`p-2 rounded-lg hover:bg-orange-50 transition-colors ${
-                    isListening ? 'text-red-500' : 'text-orange-600'
-                  }`}
-                  title="Voice search"
-                  disabled={isListening}
-                >
-                  <Mic className="h-4 w-4" />
-                </Button>
+              {/* Voice Search */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleVoiceSearch}
+                className={`p-2 rounded-lg hover:bg-orange-50 transition-colors ${
+                isListening ? 'text-red-500' : 'text-orange-600'
+                }`}
+                title="Voice search"
+                disabled={isListening}
+              >
+                <Mic className="h-4 w-4" />
+              </Button>
 
-                {/* Image Search */}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleImageSearch}
-                  className="p-2 rounded-lg hover:bg-orange-50 text-orange-600 transition-colors"
-                  title="Search by image"
-                  disabled={isProcessingImage}
-                >
-                  <Camera className="h-4 w-4" />
-                </Button>
+              {/* Image Search */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleImageSearch}
+                className="p-2 rounded-lg hover:bg-orange-50 text-orange-600 transition-colors"
+                title="Search by image"
+                disabled={isProcessingImage}
+              >
+                <Camera className="h-4 w-4" />
+              </Button>
 
-                {/* Text Search Button */}
-                <Button
-                  type="button"
-                  onClick={() => handleTextSearch()}
-                  disabled={!searchQuery.trim()}
-                  className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  <Search className="h-4 w-4 mr-2" />
-                  Search
-                </Button>
+              {/* Text Search Button */}
+              <Button
+                type="button"
+                onClick={() => router.push('/search')}
+                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <Search className="h-4 w-4 mr-2" />
+                Search
+              </Button>
               </div>
             </div>
-          </div>
+            </div>
 
-          {/* Quick Examples */}
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-2">
-            <span className="text-sm text-gray-500 mr-2">Try:</span>
-            {[
-              '🍕 "Spicy pizza"', 
-              '🍛 "Chicken biryani"', 
-              '🥗 "Healthy salad"', 
-              '🍔 "Burger and fries"',
-              '🍜 "Ramen noodles"'
-            ].map((example) => (
-              <Button
-                key={example}
-                variant="outline"
-                size="sm"
-                className="rounded-full text-sm hover:bg-orange-50 hover:border-orange-200 transition-colors"
-                onClick={() => {
-                  const text = example.replace(/[🍕🍛🥗🍔🍜]/g, '').replace(/"/g, '').trim();
-                  setSearchQuery(text);
-                  handleTextSearch(text);
-                }}
-              >
-                {example}
-              </Button>
-            ))}
-          </div>
         </div>
       </div>
     </section>

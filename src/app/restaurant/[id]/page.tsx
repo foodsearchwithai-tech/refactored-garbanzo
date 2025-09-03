@@ -110,6 +110,9 @@ export default function RestaurantProfile() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchRestaurant = async () => {
@@ -121,6 +124,8 @@ export default function RestaurantProfile() {
           console.log('Rating values - averageRating:', data.restaurant.averageRating, 'average_rating:', data.restaurant.average_rating);
           setRestaurant(data.restaurant);
           setIsFavorited(data.isFavorited || false);
+          // Reset image index when restaurant changes
+          setCurrentImageIndex(0);
         } else {
           console.error('Failed to fetch restaurant');
         }
@@ -193,19 +198,86 @@ const trackAnalytics = async (eventType: string, metadata?: Record<string, unkno
     trackAnalytics('directions', { address });
   };
 
+  // Get all available images from restaurant data
+  const getAvailableImages = () => {
+    const images = [];
+    
+    // Add profile image
+    if (restaurant?.profileImage) {
+      images.push({ url: restaurant.profileImage, alt: `${restaurant.name} profile` });
+    }
+    
+    // Add cover images
+    if (restaurant?.coverImages && restaurant.coverImages.length > 0) {
+      restaurant.coverImages.forEach((url, index) => {
+        images.push({ url, alt: `${restaurant.name} cover ${index + 1}` });
+      });
+    }
+    
+    // Add banner images
+    if (restaurant?.bannerImages && restaurant.bannerImages.length > 0) {
+      restaurant.bannerImages.forEach((url, index) => {
+        images.push({ url, alt: `${restaurant.name} banner ${index + 1}` });
+      });
+    }
+    
+    // Add gallery images
+    if (restaurant?.galleryImages && restaurant.galleryImages.length > 0) {
+      restaurant.galleryImages.forEach((url, index) => {
+        images.push({ url, alt: `${restaurant.name} gallery ${index + 1}` });
+      });
+    }
+    
+    // Add legacy images if they exist
+    if (restaurant?.images && restaurant.images.length > 0) {
+      restaurant.images.forEach((img) => {
+        images.push({ url: img.url, alt: img.alt });
+      });
+    }
+    
+    return images;
+  };
+
+  const availableImages = getAvailableImages();
+
   const nextImage = () => {
-    if (restaurant?.images) {
+    if (availableImages.length > 0) {
       setCurrentImageIndex((prev) => 
-        prev === (restaurant.images?.length ?? 0) - 1 ? 0 : prev + 1
+        prev === availableImages.length - 1 ? 0 : prev + 1
       );
     }
   };
 
   const prevImage = () => {
-    if (restaurant?.images) {
+    if (availableImages.length > 0) {
       setCurrentImageIndex((prev) => 
-        prev === 0 ? (restaurant.images?.length ?? 0) - 1 : prev - 1
+        prev === 0 ? availableImages.length - 1 : prev - 1
       );
+    }
+  };
+
+  // Touch handlers for swipe functionality
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe && availableImages.length > 1) {
+      nextImage();
+    }
+    if (isRightSwipe && availableImages.length > 1) {
+      prevImage();
     }
   };
 
@@ -242,49 +314,74 @@ const trackAnalytics = async (eventType: string, metadata?: Record<string, unkno
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50">
       {/* Header with Image Slider */}
-      <div className="relative h-64 sm:h-80 lg:h-96 bg-gradient-to-br from-orange-400 to-orange-600">
-        {restaurant.images && restaurant.images.length > 0 ? (
+      <div 
+        className="relative h-48 sm:h-64 lg:h-80 bg-gradient-to-br from-orange-400 to-orange-600"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {availableImages && availableImages.length > 0 ? (
           <>
-            <Image
-              src={restaurant.images[currentImageIndex]?.url || '/placeholder-restaurant.jpg'}
-              alt={restaurant.images[currentImageIndex]?.alt || restaurant.name}
-              fill
-              className="object-cover"
-              priority
+            <div 
+              className="relative w-full h-full cursor-pointer"
+              onClick={(e) => {
+                // Only open modal if click is not on navigation buttons
+                if (!e.defaultPrevented) {
+                  setIsImageModalOpen(true);
+                }
+              }}
+            >
+              <Image
+                src={availableImages[currentImageIndex]?.url || '/placeholder-restaurant.jpg'}
+                alt={availableImages[currentImageIndex]?.alt || restaurant.name}
+                fill
+                className="object-cover transition-all duration-300 hover:scale-105"
+                priority
+              />
+            </div>
+            <div 
+              className="absolute inset-0 bg-black/40 cursor-pointer" 
+              onClick={(e) => {
+                // Only open modal if click is not on navigation buttons
+                if (!e.defaultPrevented) {
+                  setIsImageModalOpen(true);
+                }
+              }}
             />
-            <div className="absolute inset-0 bg-black/40" />
             
             {/* Image Navigation */}
-            {restaurant.images && restaurant.images.length > 1 && (
+            {availableImages.length > 1 && (
               <>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white hover:bg-black/70"
-                  onClick={prevImage}
+                  className="absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 bg-black/60 text-white hover:bg-black/80 transition-all duration-200 z-10 pointer-events-auto"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    prevImage();
+                  }}
+                  onMouseDown={(e) => e.preventDefault()}
                 >
                   <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white hover:bg-black/70"
-                  onClick={nextImage}
+                  className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 bg-black/60 text-white hover:bg-black/80 transition-all duration-200 z-10 pointer-events-auto"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    nextImage();
+                  }}
+                  onMouseDown={(e) => e.preventDefault()}
                 >
                   <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
                 </Button>
                 
-                {/* Image Indicators */}
-                <div className="absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-1 sm:space-x-2">
-                  {restaurant.images.map((_, index) => (
-                    <button
-                      key={index}
-                      className={`w-2 h-2 rounded-full ${
-                        index === currentImageIndex ? 'bg-white' : 'bg-white/50'
-                      }`}
-                      onClick={() => setCurrentImageIndex(index)}
-                    />
-                  ))}
+                {/* Image counter */}
+                <div className="absolute top-2 right-2 bg-black/50 text-white px-1.5 py-0.5 rounded text-xs z-10 pointer-events-none">
+                  {currentImageIndex + 1}/{availableImages.length}
                 </div>
               </>
             )}
@@ -294,56 +391,56 @@ const trackAnalytics = async (eventType: string, metadata?: Record<string, unkno
           <div className="relative h-full bg-gradient-to-br from-orange-400 to-orange-600">
             <div className="absolute inset-0 bg-black/20" />
             <div className="flex items-center justify-center h-full">
-              <Utensils className="h-16 w-16 sm:h-20 sm:w-20 lg:h-24 lg:w-24 text-white/80" />
+              <Utensils className="h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 text-white/80" />
             </div>
           </div>
         )}
 
         {/* Overlay Content */}
-        <div className="absolute inset-0 flex flex-col justify-end p-3 sm:p-4 lg:p-6">
+        <div className="absolute inset-0 flex flex-col justify-end p-2 sm:p-4 lg:p-6 pointer-events-none">
           <div className="max-w-6xl mx-auto w-full">
-            <div className="flex items-end justify-between mb-3 sm:mb-4 gap-3">
-              <div className="flex items-end space-x-2 sm:space-x-4 flex-1 min-w-0">
+            <div className="flex items-end justify-between mb-2 sm:mb-3 gap-2 sm:gap-3">
+              <div className="flex items-end space-x-2 sm:space-x-3 flex-1 min-w-0">
                 {/* Circular Logo */}
                 <div className="flex-shrink-0">
                   {restaurant.logoImage ? (
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-full overflow-hidden bg-white p-1 shadow-lg">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-full overflow-hidden bg-white p-1 shadow-lg">
                       <Image
                         src={restaurant.logoImage}
                         alt={`${restaurant.name} logo`}
-                        width={56}
-                        height={56}
+                        width={48}
+                        height={48}
                         className="w-full h-full object-contain rounded-full"
                       />
                     </div>
                   ) : (
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center">
-                      <Utensils className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-white" />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center">
+                      <Utensils className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 text-white" />
                     </div>
                   )}
                 </div>
 
                 {/* Restaurant Info */}
                 <div className="min-w-0 flex-1">
-                  <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold text-white mb-1 sm:mb-2 truncate">
+                  <h1 className="text-lg sm:text-xl lg:text-3xl font-bold text-white mb-0.5 sm:mb-1 truncate leading-tight">
                     {restaurant.name}
                   </h1>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0 text-white/90">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-0.5 sm:space-y-0 text-white/90">
                     <div className="flex items-center space-x-1">
-                      <Star className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-yellow-400 fill-current" />
-                      <span className="font-medium text-sm sm:text-base">
+                      <Star className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400 fill-current" />
+                      <span className="font-medium text-xs sm:text-sm">
                         {(() => {
                           const rating = restaurant.averageRating || restaurant.average_rating || 0;
                           return rating > 0 ? rating.toFixed(1) : 'New';
                         })()}
                       </span>
-                      <span className="text-xs sm:text-sm lg:text-base">
+                      <span className="text-xs sm:text-sm">
                         ({restaurant.totalReviews || restaurant.review_count || 0} reviews)
                       </span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <MapPin className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
-                      <span className="text-xs sm:text-sm lg:text-base truncate">
+                      <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="text-xs sm:text-sm truncate">
                         {restaurant.city}, {restaurant.state}
                       </span>
                     </div>
@@ -352,21 +449,21 @@ const trackAnalytics = async (eventType: string, metadata?: Record<string, unkno
               </div>
               
               {/* Action Buttons */}
-              <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
+              <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0 pointer-events-auto">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="bg-black/50 text-white hover:bg-black/70 w-8 h-8 sm:w-10 sm:h-10"
+                  className="bg-black/60 text-white hover:bg-black/80 w-8 h-8 sm:w-9 sm:h-9"
                   onClick={handleFavorite}
                 >
-                  <Heart className={`h-4 w-4 sm:h-5 sm:w-5 ${isFavorited ? 'fill-current text-red-500' : ''}`} />
+                  <Heart className={`h-4 w-4 ${isFavorited ? 'fill-current text-red-500' : ''}`} />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="bg-black/50 text-white hover:bg-black/70 w-8 h-8 sm:w-10 sm:h-10"
+                  className="bg-black/60 text-white hover:bg-black/80 w-8 h-8 sm:w-9 sm:h-9"
                 >
-                  <Share2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <Share2 className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -375,34 +472,34 @@ const trackAnalytics = async (eventType: string, metadata?: Record<string, unkno
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
           {/* Main Info */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6 lg:space-y-8">
+          <div className="lg:col-span-2 space-y-3 sm:space-y-4 lg:space-y-6">
             {/* Quick Actions */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
               <Button 
                 onClick={handleCall}
-                className="aharamm-gradient shadow-lg h-12 sm:h-14 text-sm sm:text-base"
+                className="aharamm-gradient shadow-lg h-10 sm:h-12 text-sm"
                 disabled={!restaurant.phone}
               >
-                <Phone className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                <Phone className="h-4 w-4 mr-2" />
                 Call Restaurant
               </Button>
               <Button 
                 onClick={handleDirections}
                 variant="outline" 
-                className="h-12 sm:h-14 border-orange-200 text-orange-700 hover:bg-orange-50 text-sm sm:text-base"
+                className="h-10 sm:h-12 border-orange-200 text-orange-700 hover:bg-orange-50 text-sm"
               >
-                <Navigation className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                <Navigation className="h-4 w-4 mr-2" />
                 Get Directions
               </Button>
               <Button 
                 variant="outline" 
-                className="h-12 sm:h-14 text-sm sm:text-base"
+                className="h-10 sm:h-12 text-sm"
                 onClick={() => router.push(`/restaurant/${restaurant.id}/menu`)}
               >
-                <Utensils className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                <Utensils className="h-4 w-4 mr-2" />
                 View Menu
               </Button>
             </div>
@@ -641,16 +738,16 @@ const trackAnalytics = async (eventType: string, metadata?: Record<string, unkno
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-4 sm:space-y-6">
+          <div className="space-y-3 sm:space-y-4">
             {/* Restaurant Details */}
             <Card className="shadow-lg border-0">
-              <CardHeader className="pb-3 sm:pb-4">
+              <CardHeader className="pb-2 sm:pb-3">
                 <CardTitle className="flex items-center space-x-2">
-                  <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500" />
-                  <span className="text-base sm:text-lg">Restaurant Details</span>
+                  <MapPin className="h-4 w-4 text-orange-500" />
+                  <span className="text-sm sm:text-base">Restaurant Details</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
+              <CardContent className="space-y-2 sm:space-y-3 px-3 sm:px-4">{/* Rest of sidebar content remains the same */}
                 <div>
                   <p className="font-medium text-gray-900 mb-1 text-sm sm:text-base">Address</p>
                   <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
@@ -948,6 +1045,76 @@ const trackAnalytics = async (eventType: string, metadata?: Record<string, unkno
             fetchRestaurant();
           }}
         />
+      )}
+
+      {/* Full-Screen Image Modal */}
+      {isImageModalOpen && availableImages.length > 0 && (
+        <div 
+          className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center"
+          onClick={() => setIsImageModalOpen(false)}
+        >
+          <div className="relative w-full h-full flex items-center justify-center p-4">
+            {/* Close button */}
+            <button
+              className="absolute top-4 right-4 text-white bg-black/70 rounded-full p-3 z-20 hover:bg-black/90 transition-colors"
+              onClick={() => setIsImageModalOpen(false)}
+            >
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            {/* Navigation arrows */}
+            {availableImages.length > 1 && (
+              <>
+                <button
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white bg-black/70 rounded-full p-3 z-20 hover:bg-black/90 transition-colors"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    prevImage();
+                  }}
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+                <button
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white bg-black/70 rounded-full p-3 z-20 hover:bg-black/90 transition-colors"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    nextImage();
+                  }}
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+              </>
+            )}
+            
+            {/* Full image - responsive sizing */}
+            <div className="relative w-full h-full flex items-center justify-center">
+              <Image
+                src={availableImages[currentImageIndex]?.url || '/placeholder-restaurant.jpg'}
+                alt={availableImages[currentImageIndex]?.alt || restaurant.name}
+                fill
+                className="object-contain max-w-full max-h-full"
+                onClick={(e) => e.stopPropagation()}
+                priority
+              />
+            </div>
+            
+            {/* Image info */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white text-center z-20">
+              <div className="bg-black/70 rounded-lg px-4 py-2">
+                <p className="text-sm font-medium">
+                  {currentImageIndex + 1} of {availableImages.length}
+                </p>
+                <p className="text-xs text-gray-300 mt-1">
+                  {availableImages[currentImageIndex]?.alt || restaurant.name}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

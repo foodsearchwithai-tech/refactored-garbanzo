@@ -2,31 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Star, MapPin, ChefHat, Navigation, Loader2 } from 'lucide-react';
 import { DISCOVERY_CATEGORIES } from '@/lib/constants';
-
-// Types for restaurant data from database
-interface Restaurant {
-  id: string;
-  name: string;
-  description: string;
-  cuisineTypes: string[];
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  phone: string;
-  website: string | null;
-  latitude: string | null;
-  longitude: string | null;
-  isActive: boolean;
-  averageRating?: number;
-  reviewCount?: number;
-  distance?: number;
-}
+import { Restaurant } from '@/lib/types';
 
 interface UserLocation {
   latitude: number;
@@ -34,9 +16,6 @@ interface UserLocation {
   city?: string;
   state?: string;
 }
-
-// Mock restaurant data - will be replaced with real data from database
-
 
 export default function RestaurantDiscovery() {
   const [selectedCategory, setSelectedCategory] = useState(0);
@@ -46,6 +25,24 @@ export default function RestaurantDiscovery() {
   const [isLoadingRestaurants, setIsLoadingRestaurants] = useState(false);
   const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Helper function to get the best available image for restaurant
+  const getBestRestaurantImage = (restaurant: Restaurant): string | null => {
+    // Priority: banner > cover > gallery > profile
+    if (restaurant.bannerImages && restaurant.bannerImages.length > 0) {
+      return restaurant.bannerImages[0];
+    }
+    if (restaurant.coverImages && restaurant.coverImages.length > 0) {
+      return restaurant.coverImages[0];
+    }
+    if (restaurant.galleryImages && restaurant.galleryImages.length > 0) {
+      return restaurant.galleryImages[0];
+    }
+    if (restaurant.profileImage) {
+      return restaurant.profileImage;
+    }
+    return null;
+  };
 
   // Get user's current location
   const getUserLocation = async () => {
@@ -244,7 +241,7 @@ export default function RestaurantDiscovery() {
       )}
 
       {/* Restaurant Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
         {restaurants.length > 0 ? restaurants.map((restaurant) => (
           <Card 
             key={restaurant.id} 
@@ -254,12 +251,43 @@ export default function RestaurantDiscovery() {
               {/* Restaurant Image */}
               <Link href={`/restaurant/${restaurant.id}`}>
                 <div className="aspect-[4/3] bg-gray-200 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center">
-                    <ChefHat className="h-12 w-12 text-orange-400" />
-                  </div>
+                  {getBestRestaurantImage(restaurant) ? (
+                    <Image 
+                      src={getBestRestaurantImage(restaurant)!} 
+                      alt={restaurant.name}
+                      fill
+                      className="object-cover"
+                      onError={() => {
+                        // Handle image load error
+                        console.log('Failed to load restaurant image');
+                      }}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center">
+                      <ChefHat className="h-12 w-12 text-orange-400" />
+                    </div>
+                  )}
+                  
+                  {/* Restaurant Logo Circle - only show if logo exists */}
+                  {restaurant.logoImage && (
+                    <div className="absolute top-3 right-3 w-12 h-12 rounded-full bg-white p-1 shadow-lg">
+                      <div className="relative w-full h-full">
+                        <Image 
+                          src={restaurant.logoImage} 
+                          alt={`${restaurant.name} logo`}
+                          fill
+                          className="object-cover rounded-full"
+                          onError={() => {
+                            console.log('Failed to load restaurant logo');
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* Distance indicator */}
                   {restaurant.distance && (
-                    <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                    <div className="absolute bottom-3 right-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs font-medium">
                       {restaurant.distance.toFixed(1)} km
                     </div>
                   )}
@@ -267,20 +295,20 @@ export default function RestaurantDiscovery() {
               </Link>
 
               {/* Verified Badge */}
-              {restaurant.isActive && (
-                <div className="absolute top-3 left-3 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                  ✓ Active
+              {restaurant.isVerified && (
+                <div className="absolute top-3 left-3 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 shadow-lg">
+                  ✓ Verified
                 </div>
               )}
 
               {/* Distance & Directions */}
               {userLocation && (
-                <div className="absolute top-3 right-3 flex flex-col gap-1">
+                <div className="absolute bottom-3 left-3">
                   <a
                     href={getDirectionsUrl(restaurant)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1 transition-colors"
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 transition-colors shadow-lg"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Navigation className="h-3 w-3" />
@@ -292,12 +320,17 @@ export default function RestaurantDiscovery() {
 
             <CardContent className="p-4 space-y-3">
               <Link href={`/restaurant/${restaurant.id}`}>
-                {/* Restaurant Name & Cuisine */}
-                <div>
+                {/* Restaurant Name & Description */}
+                <div className="space-y-1">
                   <h3 className="font-bold text-lg text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-1">
                     {restaurant.name}
                   </h3>
-                  <p className="text-sm text-gray-600 line-clamp-1">
+                  {restaurant.tagline && (
+                    <p className="text-sm text-gray-600 line-clamp-1 font-medium">
+                      {restaurant.tagline}
+                    </p>
+                  )}
+                  <p className="text-sm text-gray-500 line-clamp-2">
                     {restaurant.description}
                   </p>
                 </div>
@@ -307,35 +340,52 @@ export default function RestaurantDiscovery() {
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                     <span className="font-medium">
-                      {restaurant.averageRating ? Number(restaurant.averageRating).toFixed(1) : 'New'}
+                      {restaurant.calculatedRating && restaurant.calculatedRating > 0 
+                        ? Number(restaurant.calculatedRating).toFixed(1) 
+                        : restaurant.averageRating 
+                          ? Number(restaurant.averageRating).toFixed(1) 
+                          : 'New'}
                     </span>
-                    {restaurant.reviewCount && restaurant.reviewCount > 0 && (
-                      <span className="text-gray-500">({restaurant.reviewCount})</span>
+                    {((restaurant.actualReviewCount && restaurant.actualReviewCount > 0) || 
+                      (restaurant.reviewCount && restaurant.reviewCount > 0)) && (
+                      <span className="text-gray-500">
+                        ({restaurant.actualReviewCount || restaurant.reviewCount})
+                      </span>
                     )}
                   </div>
                   <div className="flex items-center gap-1 text-gray-500">
                     <MapPin className="h-3 w-3" />
-                    <span>{restaurant.city}</span>
+                    <span className="truncate max-w-20">{restaurant.city}</span>
                   </div>
                 </div>
 
-                {/* Cuisine Types & Distance */}
+                {/* Cuisine Types & Category */}
                 <div className="flex items-center justify-between">
                   <div className="flex flex-wrap gap-1">
-                    {restaurant.cuisineTypes.slice(0, 2).map((cuisine, index) => (
+                    {restaurant.category && (
+                      <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700 border-orange-200">
+                        {restaurant.category}
+                      </Badge>
+                    )}
+                    {restaurant.hasMenu && restaurant.menuItemCount && restaurant.menuItemCount > 0 && (
+                      <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 border-green-200">
+                        Menu ({restaurant.menuItemCount})
+                      </Badge>
+                    )}
+                    {restaurant.cuisineTypes.slice(0, 1).map((cuisine, index) => (
                       <Badge key={index} variant="outline" className="text-xs">
                         {cuisine}
                       </Badge>
                     ))}
-                    {restaurant.cuisineTypes.length > 2 && (
+                    {restaurant.cuisineTypes.length > 1 && (
                       <Badge variant="outline" className="text-xs">
-                        +{restaurant.cuisineTypes.length - 2}
+                        +{restaurant.cuisineTypes.length - 1}
                       </Badge>
                     )}
                   </div>
                   {restaurant.distance && (
                     <span className="text-sm font-medium text-orange-600">
-                      {restaurant.distance.toFixed(1)} km away
+                      {restaurant.distance.toFixed(1)} km
                     </span>
                   )}
                 </div>
@@ -378,17 +428,7 @@ export default function RestaurantDiscovery() {
       </div>
 
       {/* View All Button */}
-      <div className="text-center pt-8">
-        <Button 
-          size="lg" 
-          className="aharamm-gradient px-8"
-          asChild
-        >
-          <Link href="/restaurants">
-            View All Restaurants
-          </Link>
-        </Button>
-      </div>
+      
     </div>
   );
 }
